@@ -1,0 +1,130 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start Hardware",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "stop all",
+                "Build Current C File"
+            ],
+            "type": "shell",
+            "command": "${workspaceFolder}/../App/msp430/bin/gdb_agent_console.exe -p 2000 ../App/msp430/msp430.dat 2> $null;exit 0",
+            "isBackground": true,
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".",
+                            "file": 1,
+                            "line": 1,
+                            "column": 1,
+                            "message": 1
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": false,
+                        "beginsPattern": {
+                            "regexp": "."
+                        },
+                        "endsPattern": {
+                            "regexp": "."
+                        }
+                    },
+                    "presentation": {
+                        "reveal": "never",
+                        "panel": "new"
+                    }
+                }
+            ]
+        },
+        {
+            "label": "Start Simulation",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "stop all",
+                "Build Current C File"
+            ],
+            "type": "shell",
+            "command": "${workspaceFolder}/../App/Java/bin/java -jar ../App/mspsimHeintz/mspsim_heintz.jar -platform=mspexp430f5529 ${relativeFileDirname}/main.elf",
+            "isBackground": true,
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".",
+                            "file": 1,
+                            "line": 1,
+                            "column": 1,
+                            "message": 1
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": false,
+                        "beginsPattern": {
+                            "regexp": "."
+                        },
+                        "endsPattern": {
+                            "regexp": "."
+                        }
+                    }
+                }
+            ],
+            "presentation": {
+                "reveal": "never",
+                "panel": "dedicated",
+                "close": "true"
+            }
+        },
+        {
+            "label": "Build Current C File",
+            "type": "shell",
+            "command": "${workspaceFolder}/build.bat",
+            "args": [
+                "${relativeFileDirname}",
+                "ErrorNone"
+            ],
+            "isBackground": false,
+            "problemMatcher": "$gcc",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "runOptions": {
+                "runOn": "default"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "stop server",
+            "type": "shell",
+            "command": "taskkill /IM gdb_agent_console.exe /F 2> $null;exit 0",
+            "isBackground": false,
+            "presentation": {
+                "reveal": "never",
+                "close": "true"
+            }
+        },
+        {
+            "label": "stop all",
+            "dependsOn": [
+                "stop server"
+            ],
+            //"command": "${command:workbench.action.terminal.killAll}",
+            "command": "${command:workbench.action.tasks.terminate}",
+            "args": "terminateAll",
+            "type": "shell",
+             "presentation": {
+                "reveal": "never",
+                "close": "true"
+            }
+        }
+    ]
+}

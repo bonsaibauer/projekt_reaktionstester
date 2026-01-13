@@ -1,0 +1,16 @@
+{
+    "debug.onTaskErrors": "abort",
+    "C_Cpp.default.compilerPath": "${workspaceFolder}/../App/msp430/bin/msp430-elf-gcc.exe",
+    "files.exclude": {
+        "**/.vscode": true,
+        "**flash.dat": true,
+        "**msp430f5529.svd": true,
+        "**.bat": true,
+        "**notes.md": true,
+        
+    },
+    "files.associations": {
+        "msp430.h": "c",
+        "in430.h": "c"
+    }
+}

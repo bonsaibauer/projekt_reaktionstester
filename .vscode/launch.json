@@ -1,0 +1,51 @@
+{    
+    "compounds": [
+        {
+              "name": "Simulation",
+              "type": "compound",
+              "preLaunchTask": "Start Simulation",
+              "configurations": ["Start Client"],
+              "presentation": {"group": "1_firstGroup@1"}
+        },
+        {
+              "name": "Hardware",
+              "type": "compound",
+              "preLaunchTask": "Start Hardware",
+              "configurations": ["Start Client"],
+              "presentation": {"visibility": "hidden","group": "1_firstGroup@1"}
+        }
+    ], 
+    "configurations": [
+        {
+            "name": "Start Client",
+            "type": "cppdbg",
+            "request": "launch",
+            "definitionPath": "${workspaceFolder}/msp430f5529.svd",
+            "program": "${workspaceFolder}/${relativeFileDirname}/main.elf",
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "${workspaceFolder}/../App/msp430/bin/msp430-elf-gdb.exe",
+            "setupCommands": [
+                {
+                    "text": "delete breakpoints"
+                },
+                {
+                    "text": "target remote localhost:2000"
+                },
+                {
+                    "text": "load ../../../Data/${relativeFileDirname}/main.elf",
+                }
+            ],
+            "logging": {
+                "engineLogging": false
+            },
+            "postDebugTask": "stop all",
+            "presentation": {"visibility": "hidden","group": "2_firstGroup@1"}
+        }
+    ],    
+    
+    "version": "2.0.0"
+}
