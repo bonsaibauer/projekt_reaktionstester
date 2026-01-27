@@ -1,0 +1,5 @@
+2026-01-27 13:54:48.870 [info] update#setState idle
+2026-01-27 13:54:49.860 [error] vscode-file: Refused to load resource c:\Daten\Vorlesungen\Mikrocontrollerlabor\MSPSIMaax\App\VSCode\resources\app\extensions\theme-seti\icons\seti.woff from vscode-file: protocol (original URL: vscode-file://vscode-app/c:/Daten/Vorlesungen/Mikrocontrollerlabor/MSPSIMaax/App/VSCode/resources/app/extensions/theme-seti/icons/seti.woff)
+2026-01-27 13:55:18.864 [info] update#setState checking for updates
+2026-01-27 13:55:18.896 [info] update#setState available for download
+2026-01-27 13:56:00.015 [info] Extension host with pid 1476 exited with code: 0, signal: unknown.

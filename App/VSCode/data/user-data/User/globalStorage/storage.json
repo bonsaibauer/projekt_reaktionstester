@@ -1,0 +1,77 @@
+{
+    "telemetry.machineId": "acf39aa570f307111400976c3c2c497b5f65cce3a2ed2a663f06cd0550945041",
+    "telemetry.sqmId": "{FD13A716-68D6-4FCB-823E-1CA297F07FC9}",
+    "telemetry.devDeviceId": "2fa4de40-1081-46dd-83ff-8f9a10257ff7",
+    "backupWorkspaces": {
+        "workspaces": [],
+        "folders": [
+            {
+                "folderUri": "file:///a%3A/projekt_reaktionstester/Data"
+            }
+        ],
+        "emptyWindows": []
+    },
+    "windowControlHeight": 35,
+    "profileAssociations": {
+        "workspaces": {
+            "file:///a%3A/projekt_reaktionstester/Data": "__default__profile__"
+        },
+        "emptyWindows": {}
+    },
+    "theme": "vs-dark",
+    "themeBackground": "#1f1f1f",
+    "windowSplash": {
+        "zoomLevel": 0,
+        "baseTheme": "vs-dark",
+        "colorInfo": {
+            "foreground": "#cccccc",
+            "background": "#1f1f1f",
+            "editorBackground": "#1f1f1f",
+            "titleBarBackground": "#181818",
+            "titleBarBorder": "#2b2b2b",
+            "activityBarBackground": "#181818",
+            "activityBarBorder": "#2b2b2b",
+            "sideBarBackground": "#181818",
+            "sideBarBorder": "#2b2b2b",
+            "statusBarBackground": "#181818",
+            "statusBarBorder": "#2b2b2b",
+            "statusBarNoFolderBackground": "#1f1f1f"
+        },
+        "layoutInfo": {
+            "sideBarSide": "left",
+            "editorPartMinWidth": 220,
+            "titleBarHeight": 35,
+            "activityBarWidth": 48,
+            "sideBarWidth": 386,
+            "auxiliaryBarWidth": 365,
+            "statusBarHeight": 22,
+            "windowBorder": false
+        }
+    },
+    "windowSplashWorkspaceOverride": {
+        "layoutInfo": {
+            "sideBarWidth": 386,
+            "auxiliaryBarWidth": 365,
+            "workspaces": {
+                "73976f1f98437525a72a9e64b4b7ee31": {
+                    "sideBarVisible": true,
+                    "auxiliaryBarVisible": true
+                }
+            }
+        }
+    },
+    "windowsState": {
+        "lastActiveWindow": {
+            "folder": "file:///a%3A/projekt_reaktionstester/Data",
+            "backupPath": "A:\\projekt_reaktionstester\\App\\VSCode\\data\\user-data\\Backups\\d0165272a8cae232d6ff041e0e98c98e",
+            "uiState": {
+                "mode": 0,
+                "x": 1120,
+                "y": 320,
+                "width": 1200,
+                "height": 800
+            }
+        },
+        "openedWindows": []
+    }
+}
