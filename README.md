@@ -48,4 +48,4 @@ Projekt im Rahmen der Vorlesung **Interface Synthesis** (DHBW Mannheim).
 3. Im rechten **Simulierung**‑Panel den Flash/Run‑Button nutzen, um die Firmware auf das Board zu laden. Warten, bis das Flashen abgeschlossen ist, erst dann das Board trennen.
 4. Der BoosterPack‑Aufbau zur Orientierung:
 
-   ![Educational BoosterPack MKII](../image/device.jpg)
+   ![Educational BoosterPack MKII](image/device.jpg)
