@@ -1,0 +1,18 @@
+# VS Code Portable runtime data (personal settings, caches, logs)
+App/VSCode/data/user-data/
+App/VSCode/data/code.lock
+
+# MSP430 build outputs
+Data/**/*.elf
+Data/**/*.o
+Data/**/*.out
+Data/**/*.map
+Data/**/*.lst
+
+# Simulator runtime state files
+Data/flash.dat
+App/mspsimHeintz/flash.dat
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db
