@@ -16,6 +16,8 @@
 #define CAR_W 18
 #define CAR_H 18
 #define MAX_OB 8
+#define NAME_LEN 4
+#define HIGHSCORE_MAGIC 0xA55A
 
 // --- BUTTON MAPPING ---
 #define BTN_START BIT1
@@ -27,22 +29,64 @@ const int lx[] = {4, 29, 54, 79, 104}; // Spuren-Koordinaten
 
 // --- STRUKTUREN & GLOBALE VARIABLEN ---
 typedef struct { int active, lane, x, y, spd; } Obstacle;
+typedef struct { char name[NAME_LEN]; unsigned int score; } ScoreEntry;
+typedef struct { unsigned int magic; ScoreEntry entries[3]; } HighscoreData;
+
 Obstacle obs[MAX_OB];
 int cur_lane = 2, s1_old = 1, s2_old = 1;
 
-// Flash Speicher Segment für Highscore
-volatile unsigned int __attribute__((section(".infoD"))) flashHighscore;
+// Flash Speicher Segment für Highscore Tabelle (Top 3)
+volatile HighscoreData __attribute__((section(".infoD"))) flashScores;
 
 // --- HARDWARE & SPEICHER FUNKTIONEN ---
 
-void UpdateHighscore(int score) {
+void SaveHighscores(HighscoreData *src) {
+    unsigned int *dst = (unsigned int *)&flashScores;
+    unsigned int *s = (unsigned int *)src;
+    unsigned int words = sizeof(HighscoreData) / 2;
+
     FCTL3 = FWKEY;
     FCTL1 = FWKEY + ERASE;
-    flashHighscore = 0;
+    *dst = 0; // Start Erase
     FCTL1 = FWKEY + WRT;
-    flashHighscore = score;
+    unsigned int i;
+    for (i = 0; i < words; i++) dst[i] = s[i];
     FCTL1 = FWKEY;
     FCTL3 = FWKEY + LOCK;
+}
+
+void ResetHighscores() {
+    HighscoreData tmp;
+    tmp.magic = HIGHSCORE_MAGIC;
+    int i, j;
+    for (i = 0; i < 3; i++) {
+        for (j = 0; j < NAME_LEN; j++) tmp.entries[i].name[j] = 'A';
+        tmp.entries[i].score = 0;
+    }
+    SaveHighscores(&tmp);
+}
+
+void EnsureHighscores() {
+    if (flashScores.magic != HIGHSCORE_MAGIC) ResetHighscores();
+}
+
+void InsertScore(HighscoreData *data, char name[NAME_LEN], unsigned int score) {
+    int i, j;
+    for (i = 0; i < 3; i++) {
+        if (score > data->entries[i].score) {
+            for (j = 2; j > i; j--) data->entries[j] = data->entries[j - 1];
+            for (j = 0; j < NAME_LEN; j++) data->entries[i].name[j] = name[j];
+            data->entries[i].score = score;
+            break;
+        }
+    }
+}
+
+void UpdateHighscoreTable(char name[NAME_LEN], unsigned int score) {
+    EnsureHighscores();
+    HighscoreData tmp = flashScores;
+    InsertScore(&tmp, name, score);
+    SaveHighscores(&tmp);
 }
 
 void Init_HW() {
@@ -105,17 +149,117 @@ void Wait(unsigned int start, unsigned int dur) {
     while ((TA0R - start) < dur) Input();
 }
 
+int SameName(const char *a, const char *b) {
+    int i;
+    for (i = 0; i < NAME_LEN; i++) {
+        if (a[i] != b[i]) return 0;
+    }
+    return 1;
+}
+
+int NameTaken(char name[NAME_LEN + 1], char used[][NAME_LEN + 1], int usedCount) {
+    EnsureHighscores();
+    int i;
+    for (i = 0; i < 3; i++) {
+        if (SameName(name, flashScores.entries[i].name)) return 1;
+    }
+    if (used != 0) {
+        for (i = 0; i < usedCount; i++) {
+            if (SameName(name, used[i])) return 1;
+        }
+    }
+    return 0;
+}
+
+// --- NAMENS-EINGABE & HIGHSCORE ANZEIGE ---
+
+void EnterName(char *dest, int playerNum, char used[][NAME_LEN + 1], int usedCount) {
+    WaitForRelease();
+    while (1) {
+        Rect(0, 0, 128, 128, C_BLK);
+        char name[NAME_LEN] = {'A', 'A', 'A', 'A'};
+        int idx = 0;
+        char title[20];
+        sprintf(title, "P%d NAME", playerNum);
+        drawTextLine(2, 2, title, C_YEL, C_BLK);
+        drawTextLine(9, 1, "Up/Down  Start>Next", C_GRN, C_BLK);
+
+        int up_old = 1, down_old = 1, start_old = 1, back_old = 1;
+        while (idx < NAME_LEN) {
+            char buf[20];
+            sprintf(buf, "%c %c %c %c", name[0], name[1], name[2], name[3]);
+            drawTextLine(5, 2, buf, C_WHT, C_BLK);
+            char arrow[9] = "        ";
+            arrow[idx * 2] = '^';
+            arrow[8] = 0;
+            drawTextLine(6, 2, arrow, C_GRN, C_BLK);
+
+            int up = (P4IN & BTN_UP);
+            int down = (P3IN & BTN_DOWN);
+            int start = (P1IN & BTN_START);
+            int back = (P2IN & BTN_BACK);
+
+            if (!up && up_old)   { name[idx] = (name[idx] == 'Z') ? 'A' : (name[idx] + 1); __delay_cycles(80000); }
+            if (!down && down_old) { name[idx] = (name[idx] == 'A') ? 'Z' : (name[idx] - 1); __delay_cycles(80000); }
+            if (!start && start_old) { idx++; __delay_cycles(80000); }
+            if (!back && back_old && idx > 0) { idx--; __delay_cycles(80000); }
+
+            up_old = up;
+            down_old = down;
+            start_old = start;
+            back_old = back;
+        }
+
+        int i;
+        for (i = 0; i < NAME_LEN; i++) dest[i] = name[i];
+        dest[NAME_LEN] = '\0';
+
+        if (!NameTaken(dest, used, usedCount)) break;
+
+        drawTextLine(7, 2, "NAME EXISTS", C_RED, C_BLK);
+        __delay_cycles(4000000);
+        drawTextLine(7, 2, "           ", C_BLK, C_BLK); // Hinweis entfernen
+        WaitForRelease();
+    }
+    WaitForRelease();
+}
+
+void DrawHighscoreList(int line) {
+    EnsureHighscores();
+    int i;
+    char buf[20];
+    for (i = 0; i < 3; i++) {
+        if (flashScores.entries[i].score == 0) {
+            drawTextLine(line + i, 2, "                ", C_BLK, C_BLK);
+        } else {
+            sprintf(buf, "%d. %c%c%c%c: %u",
+                    i + 1,
+                    flashScores.entries[i].name[0],
+                    flashScores.entries[i].name[1],
+                    flashScores.entries[i].name[2],
+                    flashScores.entries[i].name[3],
+                    flashScores.entries[i].score);
+            drawTextLine(line + i, 2, buf, (i == 0) ? C_GRN : C_WHT, C_BLK);
+        }
+    }
+}
+
 // --- HAUPTSPIEL LOGIK ---
 
-int PlayGame(int pNum, int isMulti) {
-    // 1. Optional: Spieler Anzeige bei Multiplayer
-    if (isMulti) {
-        Rect(0, 0, 128, 128, C_BLK);
-        char buf[20];
-        sprintf(buf, "Player %d", pNum);
-        drawTextLine(5, 4, buf, C_WHT, C_BLK);
-        __delay_cycles(10000000); // Spielernummer anzeigen
-    }
+int PlayGame(int pNum, int isMulti, char name[NAME_LEN]) {
+    char nameStr[NAME_LEN + 1];
+    int i;
+    for (i = 0; i < NAME_LEN; i++) nameStr[i] = name[i];
+    nameStr[NAME_LEN] = '\0';
+
+    // 1. Spieler Anzeige
+    Rect(0, 0, 128, 128, C_BLK);
+    char buf[20];
+    sprintf(buf, "Player %d", pNum);
+    drawTextLine(3, 3, buf, C_YEL, C_BLK);
+    sprintf(buf, "%s", nameStr);
+    drawTextLine(5, 3, buf, C_WHT, C_BLK);
+    __delay_cycles(8000000);
 
     // 2. Spielfeld Init
     Rect(0, 0, 128, 128, C_BLK);
@@ -147,11 +291,10 @@ int PlayGame(int pNum, int isMulti) {
 
     // --- GAME START ---
     srand(TA0R);
-    int i;
     for (i = 0; i < MAX_OB; i++) obs[i].active = 0;
 
     int score = 0;
-    unsigned int ticks = 8000; // Frame-Zeit: Start-Geschwindigkeit (niedrig = schnell/flüssig)
+    unsigned int ticks = 6000; // Start-Geschwindigkeit
     int max_active = 2;
     int min_speed = 2;
     const int TARGET_LOAD = 6; // Konstante Last für stabile Framerate
@@ -171,9 +314,9 @@ int PlayGame(int pNum, int isMulti) {
         if (score > 100) max_active = 6;
 
         // Geschwindigkeit erhöhen
-        // Alle 5 Punkte wird ticks um 400 reduziert (bis min 2000)
-        if (score > last_speed_score && score % 5 == 0 && ticks > 2000) {
-            ticks -= 400;
+        // Alle 5 Punkte wird ticks um 1000 reduziert (bis min 5000)
+        if (score > last_speed_score && score % 5 == 0 && ticks > 5000) {
+            ticks -= 1000;
             last_speed_score = score;
         }
 
@@ -253,8 +396,7 @@ int PlayGame(int pNum, int isMulti) {
 
 void main(void) {
     Init_HW();
-    // Highscore Initialisierung beim allerersten Start
-    if (flashHighscore == 0xFFFF) UpdateHighscore(0);
+    EnsureHighscores();
 
     int state = 0; // 0=Main, 1=Single, 2=Multi
     int mainSel = 0;
@@ -271,31 +413,34 @@ void main(void) {
             Rect(0, 100, 128, 1, C_WHT);
             drawTextLine(9, 12.5, "Start", C_YEL, C_BLK);
 
+            int up_old = 1, down_old = 1, start_old = 1;
             while (state == 0) {
                 // Menü-Visualisierung
-                if (mainSel == 0) {
-                    drawTextLine(4, 3, ">  SINGLE", C_GRN, C_BLK);
-                    drawTextLine(6, 3, "   MULTI ", C_WHT, C_BLK);
-                } else {
-                    drawTextLine(4, 3, "   SINGLE", C_WHT, C_BLK);
-                    drawTextLine(6, 3, ">  MULTI ", C_GRN, C_BLK);
-                }
+                drawTextLine(4, 3, (mainSel == 0) ? ">  SINGLE"    : "   SINGLE",    (mainSel == 0) ? C_GRN : C_WHT, C_BLK);
+                drawTextLine(6, 3, (mainSel == 1) ? ">  MULTI "    : "   MULTI ",    (mainSel == 1) ? C_GRN : C_WHT, C_BLK);
 
                 // Steuerung
-                if (!(P4IN & BTN_UP))   { mainSel = 0; __delay_cycles(150000); } // Debounce
-                if (!(P3IN & BTN_DOWN)) { mainSel = 1; __delay_cycles(150000); } // Debounce
+                int up = (P4IN & BTN_UP);
+                int down = (P3IN & BTN_DOWN);
+                int start = (P1IN & BTN_START);
+
+                // Flanke statt Pegel auswerten, damit jeder Klick nur einen Schritt macht
+                if (!up && up_old)   { mainSel--; if (mainSel < 0) mainSel = 1; __delay_cycles(60000); }
+                if (!down && down_old) { mainSel++; if (mainSel > 1) mainSel = 0; __delay_cycles(60000); }
 
                 // Auswahl bestätigen
-                if (!(P1IN & BTN_START)) state = (mainSel == 0) ? 1 : 2;
-                // Highscore Reset (Geheimfunktion auf Back-Button)
-                if (!(P2IN & BTN_BACK)) UpdateHighscore(0);
+                if (!start && start_old) state = (mainSel == 0) ? 1 : 2;
+
+                up_old = up;
+                down_old = down;
+                start_old = start;
             }
         }
         // --- SINGLE PLAYER ---
         else if (state == 1) {
             drawTextLine(1, 2, "BLOCK DODGE", C_YEL, C_BLK);
-            sprintf(b, "Highscore: %d", flashHighscore);
-            drawTextLine(4, 2, b, C_GRN, C_BLK);
+            drawTextLine(3, 2, "HIGHSCORE", C_GRN, C_BLK);
+            DrawHighscoreList(4);
 
             Rect(0, 100, 128, 1, C_WHT);
             drawTextLine(9, 1, "Back       Start", C_YEL, C_BLK);
@@ -304,15 +449,15 @@ void main(void) {
             while (1) {
                 if (!(P2IN & BTN_BACK)) { state = 0; break; }
                 if (!(P1IN & BTN_START)) {
-                    int score = PlayGame(1, 0); // 0 = Singleplayer Modus
+                    char pName[NAME_LEN + 1];
+                    EnterName(pName, 1, 0, 0);
+                    int score = PlayGame(1, 0, pName); // 0 = Singleplayer Modus
                     Rect(0, 0, 128, 128, C_BLK);
-                    sprintf(b, "Score: %d", score);
+                    sprintf(b, "%c%c%c%c: %d", pName[0], pName[1], pName[2], pName[3], score);
                     drawTextLine(5, 3, b, C_WHT, C_BLK);
-
-                    if (score > flashHighscore) {
-                        drawTextLine(7, 3, "RECORD!", C_GRN, C_BLK);
-                        UpdateHighscore(score);
-                    }
+                    UpdateHighscoreTable(pName, score);
+                    drawTextLine(7, 3, "HIGHSCORE", C_GRN, C_BLK);
+                    DrawHighscoreList(8);
                     __delay_cycles(20000000); // Ergebnis anzeigen
                     break;
                 }
@@ -325,37 +470,46 @@ void main(void) {
             drawTextLine(9, 1, "Back       Start", C_YEL, C_BLK);
             int multiSel = 0;
 
+            int up_old = 1, down_old = 1, start_old = 1, back_old = 1;
             while (state == 2) {
                 // Spieleranzahl Auswahl
                 drawTextLine(3, 3, (multiSel == 0) ? ">  2 PLAYERS" : "   2 PLAYERS", (multiSel == 0) ? C_GRN : C_WHT, C_BLK);
                 drawTextLine(5, 3, (multiSel == 1) ? ">  3 PLAYERS" : "   3 PLAYERS", (multiSel == 1) ? C_GRN : C_WHT, C_BLK);
                 drawTextLine(7, 3, (multiSel == 2) ? ">  4 PLAYERS" : "   4 PLAYERS", (multiSel == 2) ? C_GRN : C_WHT, C_BLK);
 
-                if (!(P4IN & BTN_UP))   { multiSel--; if (multiSel < 0) multiSel = 2; __delay_cycles(1500000); } // Debounce
-                if (!(P3IN & BTN_DOWN)) { multiSel++; if (multiSel > 2) multiSel = 0; __delay_cycles(1500000); } // Debounce
-                if (!(P2IN & BTN_BACK)) state = 0;
+                int up = (P4IN & BTN_UP);
+                int down = (P3IN & BTN_DOWN);
+                int start = (P1IN & BTN_START);
+                int back = (P2IN & BTN_BACK);
+
+                if (!up && up_old)   { multiSel--; if (multiSel < 0) multiSel = 2; __delay_cycles(60000); }
+                if (!down && down_old) { multiSel++; if (multiSel > 2) multiSel = 0; __delay_cycles(60000); }
+                if (!back && back_old) state = 0;
 
                 // Turnier Start
-                if (!(P1IN & BTN_START)) {
+                if (!start && start_old) {
                     pCount = multiSel + 2;
-                    int scores[5], ids[5], i, j;
+                    int scores[4], i, j, k;
+                    char names[4][NAME_LEN + 1];
 
-                    // Spiele nacheinander ausführen
-                    for (i = 1; i <= pCount; i++) {
-                        scores[i] = PlayGame(i, 1); // 1 = Multiplayer Modus (mit Anzeige)
-                        ids[i] = i;
+                    // Namen erfassen und Spiele nacheinander ausführen
+                    for (i = 0; i < pCount; i++) {
+                        EnterName(names[i], i + 1, names, i);
+                        scores[i] = PlayGame(i + 1, 1, names[i]); // 1 = Multiplayer Modus (mit Anzeige)
+                        UpdateHighscoreTable(names[i], scores[i]);
                     }
 
                     // Bubble Sort für Ranking
-                    for (i = 1; i < pCount; i++) {
-                        for (j = 1; j <= pCount - i; j++) {
+                    for (i = 0; i < pCount - 1; i++) {
+                        for (j = 0; j < pCount - i - 1; j++) {
                             if (scores[j] < scores[j + 1]) {
                                 int t = scores[j];
                                 scores[j] = scores[j + 1];
                                 scores[j + 1] = t;
-                                t = ids[j];
-                                ids[j] = ids[j + 1];
-                                ids[j + 1] = t;
+                                char tmp[NAME_LEN + 1];
+                                for (k = 0; k <= NAME_LEN; k++) tmp[k] = names[j][k];
+                                for (k = 0; k <= NAME_LEN; k++) names[j][k] = names[j + 1][k];
+                                for (k = 0; k <= NAME_LEN; k++) names[j + 1][k] = tmp[k];
                             }
                         }
                     }
@@ -363,18 +517,38 @@ void main(void) {
                     // Ergebnisliste anzeigen
                     Rect(0, 0, 128, 128, C_BLK);
                     drawTextLine(1, 1, "RESULTS", C_YEL, C_BLK);
-                    for (i = 1; i <= pCount; i++) {
-                        sprintf(b, "%d. Player%d: %d", i, ids[i], scores[i]);
-                        drawTextLine(2 + i, 1, b, (i == 1) ? C_GRN : C_WHT, C_BLK);
+                    for (i = 0; i < pCount; i++) {
+                        sprintf(b, "%d. %s: %d", i + 1, names[i], scores[i]);
+                        drawTextLine(2 + i, 1, b, (i == 0) ? C_GRN : C_WHT, C_BLK);
                     }
 
                     Rect(0, 100, 128, 1, C_WHT);
-                    drawTextLine(9, 11, "Finish", C_YEL, C_BLK);
+                    drawTextLine(9, 1, "Back   Highscore", C_YEL, C_BLK);
 
+                    // Warten auf Auswahl: BACK zurück ins Menü, START öffnet Highscore-Screen
                     WaitForRelease();
-                    while ((P1IN & BTN_START));
-                    state = 0;
+                    while (1) {
+                        if (!(P2IN & BTN_BACK)) { state = 0; break; }
+                        if (!(P1IN & BTN_START)) {
+                            // Highscore-Screen (Design analog Singleplayer-HS)
+                            Rect(0, 0, 128, 128, C_BLK);
+                            drawTextLine(1, 1, "HIGHSCORE", C_GRN, C_BLK);
+                            DrawHighscoreList(3);
+                            Rect(0, 100, 128, 1, C_WHT);
+                            drawTextLine(9, 1, "Back       Start", C_YEL, C_BLK);
+                            WaitForRelease();
+                            while (1) {
+                                if (!(P2IN & BTN_BACK) || !(P1IN & BTN_START)) { state = 0; break; }
+                            }
+                            break;
+                        }
+                    }
                 }
+
+                up_old = up;
+                down_old = down;
+                start_old = start;
+                back_old = back;
             }
         }
     }
