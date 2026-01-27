@@ -1,0 +1,22 @@
+2026-01-27 13:54:49.616 [warning] Via 'product.json#extensionEnabledApiProposals' extension 'ms-vsliveshare.vsliveshare' wants API proposal 'notebookCellExecutionState' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-01-27 13:54:49.623 [warning] Via 'product.json#extensionEnabledApiProposals' extension 'ms-python.gather' wants API proposal 'notebookCellExecutionState' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-01-27 13:54:49.624 [warning] Via 'product.json#extensionEnabledApiProposals' extension 'ms-python.vscode-pylance' wants API proposal 'mcpConfigurationProvider' but that proposal DOES NOT EXIST. Likely, the proposal has been finalized (check 'vscode.d.ts') or was abandoned.
+2026-01-27 13:54:49.892 [info] Started local extension host with pid 1476.
+2026-01-27 13:54:50.190 [info] ChatSessionStore: Migrating 0 chat sessions from storage service to file system
+2026-01-27 13:54:50.377 [info] Settings Sync: Account status changed from uninitialized to unavailable
+2026-01-27 13:54:50.607 [error] [Extension Host] (node:1476) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `Code --trace-deprecation ...` to show where the warning was created)
+2026-01-27 13:54:52.782 [info] [perf] Render performance baseline is 18ms
+2026-01-27 13:55:53.370 [warning] [LM] No provider registered for vendor copilot
+2026-01-27 13:55:59.950 [error] Could not dispose an addon that has not been loaded: Error: Could not dispose an addon that has not been loaded
+    at t.AddonManager._wrappedAddonDispose (vscode-file://vscode-app/a:/projekt_reaktionstester/App/VSCode/resources/app/node_modules/@xterm/xterm/lib/xterm.js:1:256461)
+    at t.dispose (vscode-file://vscode-app/a:/projekt_reaktionstester/App/VSCode/resources/app/node_modules/@xterm/xterm/lib/xterm.js:1:256279)
+    at Pe (vscode-file://vscode-app/a:/projekt_reaktionstester/App/VSCode/resources/app/out/vs/workbench/workbench.desktop.main.js:27:750)
+    at ILe.clear (vscode-file://vscode-app/a:/projekt_reaktionstester/App/VSCode/resources/app/out/vs/workbench/workbench.desktop.main.js:27:1357)
+    at ILe.dispose (vscode-file://vscode-app/a:/projekt_reaktionstester/App/VSCode/resources/app/out/vs/workbench/workbench.desktop.main.js:27:1286)
+    at yae.value (vscode-file://vscode-app/a:/projekt_reaktionstester/App/VSCode/resources/app/out/vs/workbench/workbench.desktop.main.js:2721:23919)
+    at I.C (vscode-file://vscode-app/a:/projekt_reaktionstester/App/VSCode/resources/app/out/vs/workbench/workbench.desktop.main.js:29:2392)
+    at I.D (vscode-file://vscode-app/a:/projekt_reaktionstester/App/VSCode/resources/app/out/vs/workbench/workbench.desktop.main.js:29:2462)
+    at I.fire (vscode-file://vscode-app/a:/projekt_reaktionstester/App/VSCode/resources/app/out/vs/workbench/workbench.desktop.main.js:29:2680)
+    at RR.dispose (vscode-file://vscode-app/a:/projekt_reaktionstester/App/VSCode/resources/app/out/vs/workbench/workbench.desktop.main.js:2721:32962)
+2026-01-27 13:55:59.963 [warning] [backup tracker] suspended, ignoring unregister event file:///a%3A/projekt_reaktionstester/Data/.vscode/c_cpp_properties.json 
