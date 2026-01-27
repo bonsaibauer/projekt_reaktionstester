@@ -294,7 +294,7 @@ int PlayGame(int pNum, int isMulti, char name[NAME_LEN]) {
     for (i = 0; i < MAX_OB; i++) obs[i].active = 0;
 
     int score = 0;
-    unsigned int ticks = 8000; // weiter beschleunigt
+    unsigned int ticks = 6000; // Start-Geschwindigkeit
     int max_active = 2;
     int min_speed = 2;
     const int TARGET_LOAD = 6; // Konstante Last für stabile Framerate
@@ -314,7 +314,7 @@ int PlayGame(int pNum, int isMulti, char name[NAME_LEN]) {
         if (score > 100) max_active = 6;
 
         // Geschwindigkeit erhöhen
-        // Alle 5 Punkte wird ticks um 800 reduziert (bis min 3000)
+        // Alle 5 Punkte wird ticks um 1000 reduziert (bis min 5000)
         if (score > last_speed_score && score % 5 == 0 && ticks > 5000) {
             ticks -= 1000;
             last_speed_score = score;
@@ -523,21 +523,26 @@ void main(void) {
                     }
 
                     Rect(0, 100, 128, 1, C_WHT);
-                    drawTextLine(9, 11, "Highscore", C_YEL, C_BLK);
+                    drawTextLine(9, 1, "Back   Highscore", C_YEL, C_BLK);
 
-                    // Ergebnisse bestätigen, dann Highscore separat anzeigen
+                    // Warten auf Auswahl: BACK zurück ins Menü, START öffnet Highscore-Screen
                     WaitForRelease();
-                    while ((P1IN & BTN_START)); // warten bis Start gedrückt wird
-
-                    // Highscore-Screen
-                    Rect(0, 0, 128, 128, C_BLK);
-                    drawTextLine(1, 1, "HIGHSCORE", C_GRN, C_BLK);
-                    DrawHighscoreList(3);
-                    Rect(0, 100, 128, 1, C_WHT);
-                    drawTextLine(9, 11, "Finish", C_YEL, C_BLK);
-                    WaitForRelease();
-                    while ((P1IN & BTN_START));
-                    state = 0;
+                    while (1) {
+                        if (!(P2IN & BTN_BACK)) { state = 0; break; }
+                        if (!(P1IN & BTN_START)) {
+                            // Highscore-Screen (Design analog Singleplayer-HS)
+                            Rect(0, 0, 128, 128, C_BLK);
+                            drawTextLine(1, 1, "HIGHSCORE", C_GRN, C_BLK);
+                            DrawHighscoreList(3);
+                            Rect(0, 100, 128, 1, C_WHT);
+                            drawTextLine(9, 1, "Back       Start", C_YEL, C_BLK);
+                            WaitForRelease();
+                            while (1) {
+                                if (!(P2IN & BTN_BACK) || !(P1IN & BTN_START)) { state = 0; break; }
+                            }
+                            break;
+                        }
+                    }
                 }
 
                 up_old = up;
