@@ -1,0 +1,1 @@
+java -jar mspsim_heintz.jar -platform=mspexp430f5529 C:/Daten/Vorlesungen/Mikrocontrollerlabor/MSPSIM/Data/Versuch1/main.elf
