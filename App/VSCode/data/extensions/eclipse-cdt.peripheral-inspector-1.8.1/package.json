@@ -1,0 +1,432 @@
+{
+	"name": "peripheral-inspector",
+	"displayName": "Peripheral Inspector",
+	"description": "Standalone Peripheral Inspector extension extracted from cortex-debug",
+	"version": "1.8.1",
+	"publisher": "eclipse-cdt",
+	"author": "marus25",
+	"contributors": [
+		{
+			"name": "Rob Moran",
+			"email": "github@thegecko.org",
+			"url": "https://github.com/thegecko"
+		},
+		{
+			"name": "haneefdm"
+		}
+	],
+	"license": "MIT",
+	"main": "dist/desktop/extension.js",
+	"browser": "dist/browser/extension.js",
+	"types": "dist/desktop/extension.d.ts",
+	"repository": "https://github.com/eclipse-cdt-cloud/vscode-peripheral-inspector",
+	"qna": "https://github.com/eclipse-cdt-cloud/vscode-peripheral-inspector/issues",
+	"icon": "media/cdtcloud.png",
+	"engines": {
+		"vscode": "^1.63.2"
+	},
+	"categories": [
+		"Debuggers"
+	],
+	"scripts": {
+		"prepare": "yarn build",
+		"clean": "git clean -f -x ./node_modules ./dist",
+		"build": "webpack --mode production && yarn lint",
+		"watch": "webpack -w",
+		"lint": "eslint . --ext .ts,.tsx",
+		"package": "vsce package --yarn",
+		"serve": "serve --cors -p 9000"
+	},
+	"dependencies": {
+		"@vscode/codicons": "0.0.20",
+		"@eclipse-cdt-cloud/vscode-ui-components": "0.0.1",
+		"jszip": "^3.10.1",
+		"node-fetch": "^2.6.7",
+		"react": "^18.2.0",
+		"react-dom": "^18.2.0",
+		"vscode-messenger": "^0.4.5",
+		"vscode-messenger-common": "^0.4.5",
+		"xml2js": "^0.4.23",
+		"xmlbuilder2": "^3.0.0"
+	},
+	"devDependencies": {
+		"@types/node": "^20.17.17",
+		"@types/react": "^18.0.26",
+		"@types/react-dom": "^18.0.9",
+		"@types/vscode": "^1.63.2",
+		"@types/vscode-webview": "^1.57.0",
+		"@types/xml2js": "^0.4.9",
+		"@typescript-eslint/eslint-plugin": "^5.49.0",
+		"@typescript-eslint/parser": "^5.49.0",
+		"@vscode/debugprotocol": "^1.59.0",
+		"@vscode/vsce": "^3.2.2",
+		"buffer": "^6.0.3",
+		"css-loader": "^6.9.0",
+		"eslint": "^8.33.0",
+		"path-browserify": "1.0.1",
+		"serve": "^14.0.1",
+		"stream-browserify": "^3.0.0",
+		"style-loader": "^3.3.4",
+		"timers-browserify": "^2.0.12",
+		"ts-loader": "^9.2.6",
+		"typescript": "^4.9.4",
+		"webpack": "^5.98.0",
+		"webpack-cli": "4.9.1"
+	},
+	"contributes": {
+		"views": {
+			"debug": [
+				{
+					"type": "webview",
+					"id": "peripheral-inspector.peripheral-treetable",
+					"name": "Peripherals",
+					"when": "peripheral-inspector.svd.hasData"
+				}
+			]
+		},
+		"commands": [
+			{
+				"command": "peripheral-inspector.svd.updateNode",
+				"title": "Update Value",
+				"icon": "$(edit)"
+			},
+			{
+				"command": "peripheral-inspector.svd.exportNode",
+				"title": "Export Register",
+				"icon": "$(desktop-download)"
+			},
+			{
+				"command": "peripheral-inspector.svd.copyValue",
+				"title": "Copy Value",
+				"icon": "$(files)"
+			},
+			{
+				"command": "peripheral-inspector.svd.forceRefresh",
+				"title": "Refresh",
+				"icon": "$(refresh)"
+			},
+			{
+				"command": "peripheral-inspector.svd.pin",
+				"title": "Pin",
+				"icon": "$(pin)"
+			},
+			{
+				"command": "peripheral-inspector.svd.unpin",
+				"title": "Unpin",
+				"icon": "$(pinned)"
+			},
+			{
+				"command": "peripheral-inspector.svd.setFormat",
+				"title": "Set Value Format",
+				"icon": "$(symbol-unit)"
+			},
+			{
+				"command": "peripheral-inspector.svd.find",
+				"title": "Find",
+				"icon": "$(search)"
+			},
+			{
+				"command": "peripheral-inspector.svd.refreshAll",
+				"title": "Refresh All",
+				"icon": "$(refresh)"
+			},
+			{
+				"command": "peripheral-inspector.svd.collapseAll",
+				"title": "Collapse All",
+				"icon": "$(collapse-all)"
+			},
+			{
+				"command": "peripheral-inspector.svd.exportAll",
+				"title": "Export All",
+				"icon": "$(desktop-download)"
+			},
+			{
+				"command": "peripheral-inspector.svd.ignorePeripheral",
+				"title": "Ignore Peripheral (Workspace)",
+				"icon": "$(circle-slash)"
+			},
+			{
+				"command": "peripheral-inspector.svd.clearIgnoredPeripherals",
+				"title": "Clear Ignored Peripherals (Workspace)",
+				"icon": "$(clear-all)"
+			},
+			{
+				"command": "peripheral-inspector.svd.periodicRefreshMode",
+				"title": "Set Periodic Refresh Mode",
+				"icon": "$(refresh)"
+			},
+			{
+				"command": "peripheral-inspector.svd.periodicRefreshInterval",
+				"title": "Set Periodic Refresh Interval",
+				"icon": "$(calendar)"
+			}
+		],
+		"menus": {
+			"commandPalette": [
+				{
+					"command": "peripheral-inspector.svd.updateNode",
+					"when": "false"
+				},
+				{
+					"command": "peripheral-inspector.svd.copyValue",
+					"when": "false"
+				},
+				{
+					"command": "peripheral-inspector.svd.exportNode",
+					"when": "false"
+				},
+				{
+					"command": "peripheral-inspector.svd.exportAll",
+					"when": "false"
+				},
+				{
+					"command": "peripheral-inspector.svd.forceRefresh",
+					"when": "false"
+				},
+				{
+					"command": "peripheral-inspector.svd.pin",
+					"when": "false"
+				},
+				{
+					"command": "peripheral-inspector.svd.unpin",
+					"when": "false"
+				},
+				{
+					"command": "peripheral-inspector.svd.setFormat",
+					"when": "false"
+				},
+				{
+					"command": "peripheral-inspector.svd.find",
+					"when": "false"
+				},
+				{
+					"command": "peripheral-inspector.svd.refreshAll",
+					"when": "false"
+				},
+				{
+					"command": "peripheral-inspector.svd.ignorePeripheral",
+					"when": "false"
+				},
+				{
+					"command": "peripheral-inspector.svd.clearIgnoredPeripherals",
+					"when": "false"
+				}
+			],
+			"touchBar": [
+				{
+					"command": "peripheral-inspector.svd.forceRefresh",
+					"when": "view == peripheral-inspector.svd && viewItem == registerRW"
+				},
+				{
+					"command": "peripheral-inspector.svd.forceRefresh",
+					"when": "view == peripheral-inspector.svd && viewItem == register"
+				},
+				{
+					"command": "peripheral-inspector.svd.forceRefresh",
+					"when": "view == peripheral-inspector.svd && viewItem == registerRO"
+				},
+				{
+					"command": "peripheral-inspector.svd.forceRefresh",
+					"when": "view == peripheral-inspector.svd && viewItem =~ /peripheral.*/"
+				},
+				{
+					"command": "peripheral-inspector.svd.exportNode",
+					"when": "view == peripheral-inspector.svd && viewItem == cluster"
+				},
+				{
+					"command": "peripheral-inspector.svd.exportNode",
+					"when": "view == peripheral-inspector.svd && viewItem == registerRW"
+				},
+				{
+					"command": "peripheral-inspector.svd.exportNode",
+					"when": "view == peripheral-inspector.svd && viewItem == register"
+				},
+				{
+					"command": "peripheral-inspector.svd.exportNode",
+					"when": "view == peripheral-inspector.svd && viewItem == registerRO"
+				},
+				{
+					"command": "peripheral-inspector.svd.exportNode",
+					"when": "view == peripheral-inspector.svd"
+				},
+				{
+					"command": "peripheral-inspector.svd.pin",
+					"when": "view == peripheral-inspector.svd && viewItem == peripheral"
+				},
+				{
+					"command": "peripheral-inspector.svd.unpin",
+					"when": "view == peripheral-inspector.svd && viewItem == peripheral.pinned"
+				}
+			],
+			"view/title": [
+				{
+					"command": "peripheral-inspector.svd.collapseAll",
+					"when": "view =~ /peripheral-inspector.peripheral-*/ && debugState == stopped",
+					"group": "navigation@1"
+				},
+				{
+					"command": "peripheral-inspector.svd.find",
+					"when": "view =~ /peripheral-inspector.peripheral-*/",
+					"group": "navigation@2"
+				},
+				{
+					"command": "peripheral-inspector.svd.refreshAll",
+					"when": "view =~ /peripheral-inspector.peripheral-*/ && debugState == stopped",
+					"group": "navigation@3"
+				},
+				{
+					"command": "peripheral-inspector.svd.exportAll",
+					"when": "view =~ /peripheral-inspector.peripheral-*/ && debugState == stopped",
+					"group": "navigation@4"
+				},
+				{
+					"command": "peripheral-inspector.svd.periodicRefreshMode",
+					"when": "view =~ /peripheral-inspector.peripheral-*/",
+					"group": "more@1"
+				},
+				{
+					"command": "peripheral-inspector.svd.periodicRefreshInterval",
+					"when": "view =~ /peripheral-inspector.peripheral-*/",
+					"group": "more@2"
+				},
+				{
+					"command": "peripheral-inspector.svd.clearIgnoredPeripherals",
+					"when": "view =~ /peripheral-inspector.peripheral-*/ && debugState == stopped && peripheral-inspector.ignoredPeripheralsLength > 0",
+					"group": "more@3"
+				}
+			],
+			"webview/context": [
+				{
+					"command": "peripheral-inspector.svd.setFormat",
+					"when": "webviewId =~ /peripheral-inspector.peripheral-*/ && webviewSection == tree-item && cdtTreeItemType !== peripheral-session-node",
+					"group": "navigation@0.1"
+				},
+				{
+					"submenu": "peripheral-inspector.svd.periodicRefresh",
+					"when": "webviewId =~ /peripheral-inspector.peripheral-*/",
+					"group": "navigation@0.2"
+				},
+				{
+					"command": "peripheral-inspector.svd.ignorePeripheral",
+					"when": "webviewId =~ /peripheral-inspector.peripheral-*/ && webviewSection == tree-item && cdtTreeItemType === peripheral-node",
+					"group": "navigation@0.3"
+				}
+			],
+			"peripheral-inspector.svd.periodicRefresh": [
+				{
+					"command": "peripheral-inspector.svd.periodicRefreshMode",
+					"when": "true",
+					"group": "navigation@1"
+				},
+				{
+					"command": "peripheral-inspector.svd.periodicRefreshInterval",
+					"when": "true",
+					"group": "navigation@2"
+				}
+			]
+		},
+		"submenus": [
+			{
+				"id": "peripheral-inspector.svd.periodicRefresh",
+				"label": "Periodic Refresh (Workspace)",
+				"icon": "$(refresh)"
+			}
+		],
+		"configuration": [
+			{
+				"title": "Peripheral Inspector"
+			},
+			{
+				"title": "Keys",
+				"properties": {
+					"peripheral-inspector.definitionPathConfig": {
+						"type": "string",
+						"default": "definitionPath",
+						"description": "Debug configuration key to use to get the path for the definition file"
+					},
+					"peripheral-inspector.deviceConfig": {
+						"type": "string",
+						"default": "deviceName",
+						"description": "Debug configuration key to use to get the device name"
+					},
+					"peripheral-inspector.processorConfig": {
+						"type": "string",
+						"default": "processorName",
+						"description": "Debug configuration key to use to get the processor name"
+					}
+				}
+			},
+			{
+				"title": "General",
+				"properties": {
+					"peripheral-inspector.packAssetUrl": {
+						"type": "string",
+						"default": "https://pack-content.cmsis.io",
+						"description": "Base URL for CMSIS pack assets"
+					},
+					"peripheral-inspector.svdAddrGapThreshold": {
+						"type": "number",
+						"default": 0,
+						"multipleOf": 1,
+						"minimum": -1,
+						"maximum": 32,
+						"description": "If the gap between registers is less than this threshold (multiple of 8), combine into a single read from device. -1 means never combine registers and is very slow"
+					},
+					"peripheral-inspector.saveLayout": {
+						"type": "boolean",
+						"default": true,
+						"description": "Save layout of peripheral view between sessions"
+					},
+					"peripheral-inspector.ignorePeripherals": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"description": "List of case insensitive peripheral names to ignore"
+					}
+				}
+			},
+			{
+				"title": "Periodic Refresh",
+				"properties": {
+					"peripheral-inspector.periodicRefreshMode": {
+						"type": "string",
+						"enum": [
+							"always",
+							"while running",
+							"off"
+						],
+						"markdownEnumDescriptions": [
+							"Always refresh automatically after the configured `#peripheral-inspector.periodicRefreshInterval#`",
+							"Refresh automatically after the configured `#peripheral-inspector.periodicRefreshInterval#` while the CPU is running",
+							"Do not automatically refresh after the configured delay"
+						],
+						"default": "off",
+						"markdownDescription": "Refresh Peripheral Inspectors after the configured `#peripheral-inspector.periodicRefreshInterval#`.",
+						"order": 0
+					},
+					"peripheral-inspector.periodicRefreshInterval": {
+						"type": "number",
+						"default": 500,
+						"minimum": 500,
+						"markdownDescription": "Controls the delay in milliseconds after which a Peripheral Inspector is refreshed automatically. Only applies when `#peripheral-inspector.periodicRefreshMode#` is enabled.",
+						"order": 1
+					}
+				}
+			}
+		]
+	},
+	"activationEvents": [
+		"onDebug",
+		"onStartupFinished"
+	],
+	"extensionKind": [
+		"workspace",
+		"ui"
+	],
+	"__metadata": {
+		"installedTimestamp": 1753199573250,
+		"targetPlatform": "undefined",
+		"size": 23981054
+	}
+}
