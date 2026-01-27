@@ -9,10 +9,6 @@ Data/**/*.out
 Data/**/*.map
 Data/**/*.lst
 
-# Simulator runtime state files
-Data/flash.dat
-App/mspsimHeintz/flash.dat
-
 # OS/editor cruft
 .DS_Store
 Thumbs.db
