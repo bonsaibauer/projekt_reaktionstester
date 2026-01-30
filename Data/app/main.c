@@ -294,7 +294,7 @@ int PlayGame(int pNum, int isMulti, char name[NAME_LEN]) {
     for (i = 0; i < MAX_OB; i++) obs[i].active = 0;
 
     int score = 0;
-    unsigned int ticks = 6000; // Start-Geschwindigkeit
+    unsigned int ticks = 2000; // Extrem schneller Start
     int max_active = 2;
     int min_speed = 2;
     const int TARGET_LOAD = 6; // Konstante Last für stabile Framerate
@@ -314,9 +314,9 @@ int PlayGame(int pNum, int isMulti, char name[NAME_LEN]) {
         if (score > 100) max_active = 6;
 
         // Geschwindigkeit erhöhen
-        // Alle 5 Punkte wird ticks um 1000 reduziert (bis min 5000)
-        if (score > last_speed_score && score % 5 == 0 && ticks > 5000) {
-            ticks -= 1000;
+        // Alle 5 Punkte wird ticks um 200 reduziert (bis 200 Minimum)
+        if (score > last_speed_score && score % 5 == 0 && ticks > 200) {
+            ticks -= 200;
             last_speed_score = score;
         }
 
