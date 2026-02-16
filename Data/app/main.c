@@ -123,7 +123,7 @@ void Input() {
     if (new_lane != cur_lane) {
         DrawCar(cur_lane, C_BLK);
         cur_lane = new_lane;
-        DrawCar(cur_lane, C_BLU);
+        DrawCar(cur_lane, C_RED);
     }
     s1_old = sl; s2_old = sr;
 }
@@ -153,7 +153,6 @@ int ShowHighscoreStartScreen() {
 // NAMEN-EINGABE
 int IsNameTaken(char* name, char usedNames[][3], int usedCount) {
     int i;
-    if (flashHighscore.score > 0 && name[0] == flashHighscore.name[0] && name[1] == flashHighscore.name[1]) return 1;
     if (!usedNames) return 0;
     for (i = 0; i < usedCount; i++) if (name[0] == usedNames[i][0] && name[1] == usedNames[i][1]) return 1;
     return 0;
@@ -266,7 +265,7 @@ int PlayGame(int pNum, int isMulti, char* playerName) {
 
     Rect(0, 0, 128, 128, C_BLK);
     int k; for (k = 1; k < 5; k++) Rect(k * 25, 0, 1, 128, C_GRY);
-    cur_lane = 2; DrawCar(cur_lane, C_BLU);
+    cur_lane = 2; DrawCar(cur_lane, C_RED);
     s1_old = 1; s2_old = 1;
 
     Rect(0, 0, 128, 15, C_BLK);
@@ -282,7 +281,7 @@ int PlayGame(int pNum, int isMulti, char* playerName) {
 
     Rect(0, 0, 128, 15, C_BLK);
     for (k = 1; k < 5; k++) Rect(k * 25, 0, 1, 15, C_GRY);
-    DrawCar(cur_lane, C_BLU);
+    DrawCar(cur_lane, C_RED);
 
     srand(TA0R);
     int i; for (i = 0; i < MAX_OB; i++) obs[i].active = 0;
@@ -308,7 +307,7 @@ int PlayGame(int pNum, int isMulti, char* playerName) {
             if (obs[i].active) {
                 if (obs[i].y >= -18) { Rect(obs[i].x, obs[i].y, CAR_W, obs[i].spd, C_BLK); draw_count++; }
                 obs[i].y += obs[i].spd;
-                if (obs[i].y > -18) { Rect(obs[i].x, obs[i].y, CAR_W, CAR_H, C_RED); draw_count++; }
+                if (obs[i].y > -18) { Rect(obs[i].x, obs[i].y, CAR_W, CAR_H, C_BLU); draw_count++; }
                 if (obs[i].lane == cur_lane && obs[i].y + CAR_H >= CAR_Y && obs[i].y <= CAR_Y + CAR_H) crash = 1;
                 if (obs[i].y > 128) { obs[i].active = 0; score++; } else active++;
             }
@@ -316,12 +315,12 @@ int PlayGame(int pNum, int isMulti, char* playerName) {
 
         int target_draws = TARGET_LOAD * 2;
         while (draw_count < target_draws) { Rect(0, 130, CAR_W, CAR_H, C_BLK); draw_count++; }
-        DrawCar(cur_lane, C_BLU);
+        DrawCar(cur_lane, C_RED);
 
         if (crash) {
-            Rect(0, 0, 128, 128, C_RED);
-            drawTextLine(4, 3, "GAME OVER", C_WHT, C_RED);
-            char b[20]; sprintf(b, "Score: %d", score); drawTextLine(6, 3, b, C_WHT, C_RED);
+            Rect(0, 0, 128, 128, C_BLU);
+            drawTextLine(4, 3, "GAME OVER", C_WHT, C_BLU);
+            char b[20]; sprintf(b, "Score: %d", score); drawTextLine(6, 3, b, C_WHT, C_BLU);
             __delay_cycles(40000000);
             return score;
         }
@@ -385,14 +384,23 @@ void main(void) {
         else if (state == 1) {
             if (!ShowHighscoreStartScreen()) { state = 0; continue; }
             if (!EnterName(0, singlePlayerName, 0, 0)) { state = 0; continue; }
-            int score = PlayGame(0, 0, singlePlayerName);
-            Rect(0, 0, 128, 128, C_BLK);
-            sprintf(b, "Score: %d", score); drawTextLine(5, 3, b, C_WHT, C_BLK);
-            if (score > flashHighscore.score) {
-                drawTextLine(7, 3, "NEW RECORD!", C_GRN, C_BLK);
-                UpdateHighscore(singlePlayerName, score);
+            while (state == 1) {
+                int score = PlayGame(0, 0, singlePlayerName);
+                Rect(0, 0, 128, 128, C_BLK);
+                sprintf(b, "Score: %d", score); drawTextLine(5, 3, b, C_WHT, C_BLK);
+                if (score > flashHighscore.score) {
+                    drawTextLine(7, 3, "NEW RECORD!", C_GRN, C_BLK);
+                    UpdateHighscore(singlePlayerName, score);
+                }
+                Rect(0, 100, 128, 1, C_WHT);
+                drawTextLine(9, 1, "Back    Continue", C_YEL, C_BLK);
+                WaitForRelease();
+                while (1) {
+                    int joy_x_end = ReadJoystickX();
+                    if (!(P2IN & BTN_BACK) || joy_x_end < 1500) { state = 0; break; }
+                    if (!(P1IN & BTN_START) || joy_x_end > 2600) break;
+                }
             }
-            __delay_cycles(20000000);
         }
         else if (state == 2) {
             if (!ShowHighscoreStartScreen()) { state = 0; continue; }
@@ -437,14 +445,13 @@ void main(void) {
                     }
                     if (newRecord) drawTextLine(7, 1, "NEW RECORD!", C_GRN, C_BLK);
                     Rect(0, 100, 128, 1, C_WHT);
-                    drawTextLine(9, 1, "Back       Start", C_YEL, C_BLK);
+                    drawTextLine(9, 1, "Back    Continue", C_YEL, C_BLK);
                     WaitForRelease();
                     while (1) {
                         int joy_x_end = ReadJoystickX();
+                        if (!(P2IN & BTN_BACK) || joy_x_end < 1500) { state = 0; break; }
                         if (!(P1IN & BTN_START) || joy_x_end > 2600) break;
-                        if (!(P2IN & BTN_BACK) || joy_x_end < 1500) break;
                     }
-                    state = 0;
                 }
             }
         }

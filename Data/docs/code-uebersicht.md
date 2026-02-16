@@ -7,7 +7,6 @@
 - Persistenter Highscore im Flash (bleibt nach Neustart erhalten).
 - Namenseingabe vor jedem Lauf.
 - Name-Duplikat-Schutz:
-- Highscore-Name kann nicht erneut verwendet werden (wenn bereits ein Record existiert).
 - Im Multiplayer koennen Spieler nicht denselben Namen waehlen.
 
 ## Wie laeuft das Spiel ab?
