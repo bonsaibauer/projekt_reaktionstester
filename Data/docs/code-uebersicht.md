@@ -1,51 +1,94 @@
-# Block Dodge – Codeübersicht (Data/app/main.c)
+# Block Dodge - Codeübersicht (`Data/app/main.c`)
 
 ## Aufbau
-- **Hardware-Init (`Init_HW`)**: Takt, Timer0 (TA0), Button-Pullups, Display-Init (ST7735). Timer0 läuft frei und dient als Zeitbasis.
-- **Persistenz**: Highscore-Struktur (`flashScores`) liegt im InfoD-Flash-Segment. Funktionen `SaveHighscores`, `ResetHighscores`, `EnsureHighscores` sichern Top-3.
-- **Eingabe**: Vier Tasten (Start/Back/Up/Down) werden als Pegel gelesen. `Input()` wertet Flanken aus und verschiebt das Auto (`cur_lane`) zwischen 5 Spuren.
-- **Grafik**: `Rect` und `DrawCar` zeichnen Rechtecke. Spielfeldbreite 128px, 5 Spuren mit x-Koordinaten aus `lx[]`.
-- **Gameplay (`PlayGame`)**: Tutorial-Sequenz, dann Endlosschleife mit Obstacle-Update, Kollision, Scoring und adaptiver Spawn-Rate.
-- **Menüs**: Hauptmenü (Single/Multi), Namenseingabe, Highscore-Anzeige, Turnier-Flow für 2–4 Spieler.
+- **Hardware-Init (`Init_HW`)**: Stoppt den Watchdog, konfiguriert Clock/FLL, startet `TA0` im Continuous-Mode, setzt Button-Pullups, aktiviert ADC12 und initialisiert das ST7735-Display.
+- **Persistenz**: Ein einzelner Highscore (`flashHighscore`) liegt im InfoD-Flash (`.infoD`) als `{ name[3], score }`.
+- **Eingabe**: Tasten plus Joystick (ADC X/Y). `Input()` verarbeitet Flanken für Tasten und eine Deadzone-Logik fuer den Joystick.
+- **Rendering**: `Rect()` als Rechteck-Helfer, `DrawCar()` zeichnet das Spieler-Auto in einer von 5 Spuren.
+- **Spielkern (`PlayGame`)**: Tutorial (rechts/links), dann Frame-Loop mit Obstacle-Update, Kollision, Spawn und Difficulty-Scaling.
+- **State-Machine in `main()`**: Hauptmenue (`state 0`), Singleplayer (`state 1`), Multiplayer (`state 2`).
 
-## Feste Werte (wichtige Defines)
+## Wichtige Konstanten
 - Farben: `C_BLK`, `C_WHT`, `C_GRN`, `C_RED`, `C_YEL`, `C_BLU`, `C_GRY`.
-- Auto: Y-Position `CAR_Y = 100`, Breite/Höhe `CAR_W = CAR_H = 18`.
-- Spuren: `lx[] = {4, 29, 54, 79, 104}` (5 Lanes).
-- Obstacle-Limits: `MAX_OB = 8`.
-- Name: `NAME_LEN = 4`.
-- Highscore-Marker: `HIGHSCORE_MAGIC = 0xA55A`.
-- Buttons (Ports): `BTN_START = BIT1 (P1)`, `BTN_BACK = BIT1 (P2)`, `BTN_UP = BIT0 (P4)`, `BTN_DOWN = BIT7 (P3)`.
+- Auto: `CAR_Y = 100`, `CAR_W = 18`, `CAR_H = 18`.
+- Spuren: `lx[] = {4, 29, 54, 79, 104}`.
+- Hindernis-Slots: `MAX_OB = 8`.
+- Buttons:
+- `BTN_START = BIT1` auf Port `P1`.
+- `BTN_BACK = BIT1` auf Port `P2`.
+- `BTN_UP = BIT0` auf Port `P4`.
+- `BTN_DOWN = BIT7` auf Port `P3`.
 
-## Spielgeschwindigkeit
-- Start-Delay: `ticks = 2000` Timer-Takte pro Frame (kleiner = schneller).
-- Beschleunigung: Alle 5 Punkte wird `ticks` um `200` verringert, solange `ticks > 200`. Minimalwert somit `200`.
-- Hindernis-Geschwindigkeit: `min_speed = 2`, tatsächliche Block-Geschwindigkeit `spd = min_speed + rand()%3` (also 2–4 px/FW).
-- Ziel-Draw-Load: `TARGET_LOAD = 6` sorgt mit Dummy-Zeichnen für konstante Rechenzeit je Frame.
+## Eingabe und Steuerung
+- **Tasten links/rechts waehrend Spiel**: `BACK` (P2.1) bewegt nach links, `START` (P1.1) nach rechts.
+- **Joystick X im Spiel**:
+- `< 1500` bewegt nach links.
+- `> 2600` bewegt nach rechts.
+- Zwischen `1800..2300` wird das "moved"-Latch zurueckgesetzt (Deadzone).
+- **Joystick Y in Menues/Namenseingabe**:
+- `> 3072` entspricht "hoch".
+- `< 1024` entspricht "runter".
 
-## Spiellogik in Kurzform
-1. Tutorial zwingt den Spieler einmal nach rechts und wieder nach links.
-2. Hauptschleife:
-   - Eingabe lesen (`Input`), Auto neu zeichnen.
-   - Schwierigkeit: `max_active` steigt bei Scores >10/25/50/100.
-   - Hindernisse: Bis zu `max_active` gleichzeitig; Spawn-Chance 40%. Spawn nur, wenn Spur im oberen Bereich frei ist.
-   - Bewegung: Jedes aktive Hindernis wird nach unten verschoben und neu gezeichnet; Kollision prüft Rechtecküberlappung mit Spieler-Auto.
-   - Scoring: Wenn Block unterhalb 128px ist, Score++ und Slot wird frei.
-   - Frame-Timing: `Wait(start, ticks)` hält die Schleife auf die gewünschte Dauer und pollt weiter Eingaben.
-3. Crash: Roter Screen, Score-Anzeige, Rückkehr mit Score-Wert.
+## Gameplay (`PlayGame`)
+1. Optionaler Multiplayer-Hinweis: `"It's <Name>'s turn!"`.
+2. Tutorial: einmal nach rechts, einmal nach links bewegen.
+3. Spielstart mit:
+- `score = 0`
+- `max_active = 2`
+- `min_speed = 2`
+- `ticks = 2600` (Frame-Dauer in Timer-Ticks)
+4. Pro Frame:
+- Eingabe lesen (`Input()`).
+- Aktive Hindernisse loeschen/verschieben/neu zeichnen.
+- Kollision pruefen (Spur + Y-Ueberlappung mit Spielerfahrzeug).
+- Bei `y > 128`: Hindernis entfernen und `score++`.
+- Spawn pruefen, wenn `active < max_active`.
+- Timing mit `Wait(start, ticks)` (pollt dabei weiter Eingaben).
 
-## Highscore-/Multiplayer-Flow
-- **Single**: Name eingeben → Spiel → Score anzeigen → Highscore aktualisieren (`UpdateHighscoreTable`).
-- **Multi (2–4 Spieler)**: Namen nacheinander → jeder spielt → Scores werden per Bubble-Sort absteigend gelistet → optional Highscore-Screen.
+## Difficulty-Scaling
+- `max_active` steigt mit dem Score:
+- `> 5` -> `3`
+- `> 15` -> `4`
+- `> 35` -> `5` und `min_speed = 3`
+- Geschwindigkeitserhoehung:
+- Wenn `score % 3 == 0` und `ticks > 400`, dann `ticks -= 300`.
+- Spawn-Chance:
+- `spawn_chance = 30 + score/10`, gedeckelt auf `55`.
+- Spawn-Speed:
+- `spd = min_speed + rand()%2` (also 2-3, spaeter 3-4).
 
-## Wichtige Variablen
-- `cur_lane`: aktuelle Spur des Autos (0–4).
-- `obs[MAX_OB]`: Hindernis-Array mit `active`, `lane`, `x`, `y`, `spd`.
-- `score`: aktuelle Punktezahl im Lauf.
-- `last_speed_score`: merkt sich letzte Schwelle für Geschwindigkeitsreduktion.
+## Spawn-Regeln
+- Spawn nur in freier Spur im oberen Bereich (`kein aktives Obstacle in gleicher Spur mit y < 40`).
+- Zusaetzliche Blockade: Wenn bereits `>= 4` Hindernisse im Bereich `-25 <= y < 35` aktiv sind, wird Spawn verworfen.
+- Maximal `15` Spawn-Versuche pro Spawn-Ereignis.
 
-## Anpassungstipps
-- Schneller/langsamer Start: `ticks`-Startwert anpassen.
-- Härtere Beschleunigung: Schrittgröße (`200`) ändern oder Schwellen (alle 5 Punkte) anpassen.
-- Mehr/Weniger Verkehr: Startwert und Stufen in `max_active` ändern oder Spawn-Prozentsatz (40%) anpassen.
-- Höhere Blockgeschwindigkeit: `min_speed` anheben.
+## Menue- und Modus-Flow
+- **`state 0` (Hauptmenue)**:
+- Auswahl `SINGLE` oder `MULTI` per Joystick Y / Up/Down.
+- `START` wechselt in den gewaehlten Modus.
+- `BACK` setzt den gespeicherten Highscore auf Name `"  "` und Score `0`.
+- **`state 1` (Singleplayer)**:
+- Zeigt aktuellen Highscore (oder `No Record`).
+- Bei `START`: Namenseingabe (`2` Zeichen) -> Spiel -> Score-Anzeige -> ggf. neuer Highscore via `UpdateHighscore()`.
+- **`state 2` (Multiplayer)**:
+- Auswahl 2/3/4 Spieler.
+- Jeder Spieler gibt 2 Zeichen Namen ein und spielt nacheinander.
+- Ergebnisse werden per Bubble-Sort absteigend sortiert und angezeigt.
+
+## Highscore-Implementierung
+- Nur **ein** gespeicherter Rekord (kein Top-3-Board).
+- Flash wird in `UpdateHighscore()` geloescht und direkt neu beschrieben.
+- Initialisierung in `main()`:
+- Wenn `flashHighscore.score == 0xFFFF`, wird auf leeren Namen und Score `0` gesetzt.
+
+## Relevante globale Variablen
+- `cur_lane`: Aktuelle Spieler-Spur (`0..4`).
+- `obs[MAX_OB]`: Hindernisliste mit `{ active, lane, x, y, spd }`.
+- `s1_old`, `s2_old`: Flankenerkennung fuer linke/rechte Taste.
+- `flashHighscore`: persistenter Einzel-Highscore im Flash.
+
+## Hinweise fuer Anpassungen
+- Starttempo: `ticks` in `PlayGame()` aendern.
+- Progression: Schwellen fuer `max_active` oder Schrittweite bei `ticks -= 300` aendern.
+- Verkehrsaufkommen: `spawn_chance` oder `MAX_OB` anpassen.
+- Schwierigkeitsspitze: `min_speed` und Spawn-Regeln im oberen Bereich justieren.
