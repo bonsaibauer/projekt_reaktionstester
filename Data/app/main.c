@@ -132,6 +132,24 @@ void Wait(unsigned int start, unsigned int dur) {
     while ((TA0R - start) < dur) Input();
 }
 
+int ShowHighscoreStartScreen() {
+    char b[20];
+    drawTextLine(1, 2, "BLOCK DODGE", C_YEL, C_BLK);
+    if (flashHighscore.score > 0) {
+        drawTextLine(3, 2, "Highscore", C_GRN, C_BLK);
+        sprintf(b, "%s: %u", flashHighscore.name, flashHighscore.score);
+        drawTextLine(5, 2, b, C_GRN, C_BLK);
+    } else drawTextLine(5, 2, "No Record", C_GRY, C_BLK);
+    Rect(0, 100, 128, 1, C_WHT);
+    drawTextLine(9, 1, "Back       Start", C_YEL, C_BLK);
+    WaitForRelease();
+    while (1) {
+        int joy_x = ReadJoystickX();
+        if (!(P2IN & BTN_BACK) || joy_x < 1500) return 0;
+        if (!(P1IN & BTN_START) || joy_x > 2600) return 1;
+    }
+}
+
 // NAMEN-EINGABE
 int EnterName(int playerNum, char* name) {
     name[0] = 'A'; name[1] = 'A'; name[2] = '\0';
@@ -255,8 +273,8 @@ int PlayGame(int pNum, int isMulti, char* playerName) {
     srand(TA0R);
     int i; for (i = 0; i < MAX_OB; i++) obs[i].active = 0;
 
-    int score = 0, max_active = 2, min_speed = 2;
-    unsigned int ticks = 2600;
+    int score = 0, max_active = 3, min_speed = 2;
+    unsigned int ticks = 1900;
     const int TARGET_LOAD = 6;
     static int last_speed_score = 0;
 
@@ -294,8 +312,8 @@ int PlayGame(int pNum, int isMulti, char* playerName) {
             return score;
         }
 
-        int spawn_chance = 30 + (score / 10);
-        if (spawn_chance > 55) spawn_chance = 55;
+        int spawn_chance = 40 + (score / 10);
+        if (spawn_chance > 59) spawn_chance = 59;
 
         if (active < max_active && (rand() % 100) < spawn_chance) {
             for (i = 0; i < MAX_OB; i++) if (!obs[i].active) {
@@ -351,45 +369,30 @@ void main(void) {
             }
         }
         else if (state == 1) {
-            drawTextLine(1, 2, "BLOCK DODGE", C_YEL, C_BLK);
-            if (flashHighscore.score > 0) {
-                drawTextLine(3, 2, "Highscore", C_GRN, C_BLK);
-                sprintf(b, "%s: %u", flashHighscore.name, flashHighscore.score);
-                drawTextLine(5, 2, b, C_GRN, C_BLK);
-            } else drawTextLine(5, 2, "No Record", C_GRY, C_BLK);
+            if (!ShowHighscoreStartScreen()) { state = 0; continue; }
+            if (!EnterName(0, singlePlayerName)) { state = 0; continue; }
+            int score = PlayGame(0, 0, singlePlayerName);
+            Rect(0, 0, 128, 128, C_BLK);
+            sprintf(b, "Score: %d", score); drawTextLine(5, 3, b, C_WHT, C_BLK);
+            if (score > flashHighscore.score) {
+                drawTextLine(7, 3, "NEW RECORD!", C_GRN, C_BLK);
+                UpdateHighscore(singlePlayerName, score);
+            }
+            __delay_cycles(20000000);
+        }
+        else if (state == 2) {
+            if (!ShowHighscoreStartScreen()) { state = 0; continue; }
+
+            Rect(0, 0, 128, 128, C_BLK);
+            drawTextLine(1, 1, "NUMBER OF PLAYERS", C_YEL, C_BLK);
             Rect(0, 100, 128, 1, C_WHT);
             drawTextLine(9, 1, "Back       Start", C_YEL, C_BLK);
             WaitForRelease();
-            while (1) {
-                int joy_x = ReadJoystickX();
-                if (!(P2IN & BTN_BACK) || joy_x < 1500) { state = 0; break; }
-                if (!(P1IN & BTN_START) || joy_x > 2600) {
-                    if (!EnterName(0, singlePlayerName)) { state = 0; break; }
-                    int score = PlayGame(0, 0, singlePlayerName);
-                    Rect(0, 0, 128, 128, C_BLK);
-                    sprintf(b, "Score: %d", score); drawTextLine(5, 3, b, C_WHT, C_BLK);
-                    if (score > flashHighscore.score) {
-                        drawTextLine(7, 3, "NEW RECORD!", C_GRN, C_BLK);
-                        UpdateHighscore(singlePlayerName, score);
-                    }
-                    __delay_cycles(20000000); break;
-                }
-            }
-        }
-        else if (state == 2) {
-            drawTextLine(1, 1, "NUMBER OF PLAYERS", C_YEL, C_BLK);
-            if (flashHighscore.score > 0) {
-                drawTextLine(2, 1, "Highscore", C_GRN, C_BLK);
-                sprintf(b, "%s: %u", flashHighscore.name, flashHighscore.score);
-                drawTextLine(3, 1, b, C_GRN, C_BLK);
-            } else drawTextLine(3, 1, "No Record", C_GRY, C_BLK);
-            Rect(0, 100, 128, 1, C_WHT);
-            drawTextLine(9, 1, "Back       Start", C_YEL, C_BLK);
             int multiSel = 0;
             while (state == 2) {
-                drawTextLine(4, 3, multiSel == 0 ? ">  2 PLAYERS" : "  2 PLAYERS", multiSel == 0 ? C_GRN : C_GRY, C_BLK);
-                drawTextLine(6, 3, multiSel == 1 ? ">  3 PLAYERS" : "  3 PLAYERS", multiSel == 1 ? C_GRN : C_GRY, C_BLK);
-                drawTextLine(8, 3, multiSel == 2 ? ">  4 PLAYERS" : "  4 PLAYERS", multiSel == 2 ? C_GRN : C_GRY, C_BLK);
+                drawTextLine(3, 3, multiSel == 0 ? ">  2 PLAYERS" : "  2 PLAYERS", multiSel == 0 ? C_GRN : C_GRY, C_BLK);
+                drawTextLine(5, 3, multiSel == 1 ? ">  3 PLAYERS" : "  3 PLAYERS", multiSel == 1 ? C_GRN : C_GRY, C_BLK);
+                drawTextLine(7, 3, multiSel == 2 ? ">  4 PLAYERS" : "  4 PLAYERS", multiSel == 2 ? C_GRN : C_GRY, C_BLK);
                 int joy_y = ReadJoystickY();
                 int joy_x = ReadJoystickX();
                 if (!(P4IN & BTN_UP) || joy_y > 3072) { multiSel--; if (multiSel < 0) multiSel = 2; __delay_cycles(1500000); }
