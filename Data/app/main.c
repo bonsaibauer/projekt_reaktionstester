@@ -18,7 +18,7 @@
 #define MAX_OB 8
 
 #define BTN_START BIT1
-#define BTN_BACK  BIT1
+#define BTN_MENU  BIT1
 #define BTN_UP    BIT0
 #define BTN_DOWN  BIT7
 
@@ -45,7 +45,7 @@ void Init_HW() {
     TA0CTL = TASSEL_2 + ID_3 + MC_2;
 
     P1DIR &= ~BTN_START; P1REN |= BTN_START; P1OUT |= BTN_START;
-    P2DIR &= ~BTN_BACK;  P2REN |= BTN_BACK;  P2OUT |= BTN_BACK;
+    P2DIR &= ~BTN_MENU;  P2REN |= BTN_MENU;  P2OUT |= BTN_MENU;
     P4DIR &= ~BTN_UP;    P4REN |= BTN_UP;    P4OUT |= BTN_UP;
     P3DIR &= ~BTN_DOWN;  P3REN |= BTN_DOWN;  P3OUT |= BTN_DOWN;
 
@@ -109,7 +109,7 @@ int ReadJoystickX() {
 
 void Input() {
     static int moved = 0;
-    int sl = (P2IN & BTN_BACK), sr = (P1IN & BTN_START);
+    int sl = (P2IN & BTN_MENU), sr = (P1IN & BTN_START);
     int new_lane = cur_lane;
 
     if (!sl && s1_old && cur_lane > 0) new_lane = cur_lane - 1;
@@ -141,11 +141,11 @@ int ShowHighscoreStartScreen() {
         drawTextLine(5, 2, b, C_GRN, C_BLK);
     } else drawTextLine(5, 2, "No Record", C_GRY, C_BLK);
     Rect(0, 100, 128, 1, C_WHT);
-    drawTextLine(9, 1, "Back       Start", C_YEL, C_BLK);
+    drawTextLine(9, 1, "Menu          Ok", C_YEL, C_BLK);
     WaitForRelease();
     while (1) {
         int joy_x = ReadJoystickX();
-        if (!(P2IN & BTN_BACK) || joy_x < 1500) return 0;
+        if (!(P2IN & BTN_MENU) || joy_x < 1500) return 0;
         if (!(P1IN & BTN_START) || joy_x > 2600) return 1;
     }
 }
@@ -162,7 +162,7 @@ int EnterName(int playerNum, char* name, char usedNames[][3], int usedCount) {
 retry:
     name[0] = 'A'; name[1] = 'A'; name[2] = '\0';
     int letterIdx = 0, charSel = 0;
-    int up_old = 1, down_old = 1, start_old = 1, back_old = 1;
+    int up_old = 1, down_old = 1, start_old = 1, menu_old = 1;
 
     Rect(0, 0, 128, 128, C_BLK);
     char buf[20];
@@ -177,7 +177,7 @@ retry:
     drawTextLine(7, 13, "_ _", C_WHT, C_BLK);
 
     while (letterIdx < 3) {
-        drawTextLine(9, 1, letterIdx == 0 ? "Cancel     Ok   " : (letterIdx == 1 ? "Backspace  Ok   " : "Backspace  Start"), C_YEL, C_BLK);
+        drawTextLine(9, 1, letterIdx == 0 ? "Menu          Ok" : (letterIdx == 1 ? "Backspace     Ok" : "Backspace  Start"), C_YEL, C_BLK);
 
         char prev = (charSel == 0) ? 'Z' : ('A' + charSel - 1);
         char curr = 'A' + charSel;
@@ -198,7 +198,7 @@ retry:
         while (waiting) {
             int joy_y = ReadJoystickY();
             int joy_x = ReadJoystickX();
-            int up = (P4IN & BTN_UP), down = (P3IN & BTN_DOWN), start = (P1IN & BTN_START), back = (P2IN & BTN_BACK);
+            int up = (P4IN & BTN_UP), down = (P3IN & BTN_DOWN), start = (P1IN & BTN_START), menu = (P2IN & BTN_MENU);
 
             if (letterIdx < 2 && ((!up && up_old) || joy_y > 3072)) {
                 charSel = (charSel == 0) ? 25 : charSel - 1;
@@ -227,7 +227,7 @@ retry:
                 __delay_cycles(200000);
                 waiting = 0;
             }
-            if (((!back && back_old) || joy_x < 1500)) {
+            if (((!menu && menu_old) || joy_x < 1500)) {
                 if (letterIdx == 0) {
                     __delay_cycles(200000);
                     return 0;
@@ -242,7 +242,7 @@ retry:
                 __delay_cycles(200000);
                 waiting = 0;
             }
-            up_old = up; down_old = down; start_old = start; back_old = back;
+            up_old = up; down_old = down; start_old = start; menu_old = menu;
         }
     }
     if (IsNameTaken(name, usedNames, usedCount)) {
@@ -393,11 +393,11 @@ void main(void) {
                     UpdateHighscore(singlePlayerName, score);
                 }
                 Rect(0, 100, 128, 1, C_WHT);
-                drawTextLine(9, 1, "Back    Continue", C_YEL, C_BLK);
+                drawTextLine(9, 1, "Menu       Retry", C_YEL, C_BLK);
                 WaitForRelease();
                 while (1) {
                     int joy_x_end = ReadJoystickX();
-                    if (!(P2IN & BTN_BACK) || joy_x_end < 1500) { state = 0; break; }
+                    if (!(P2IN & BTN_MENU) || joy_x_end < 1500) { state = 0; break; }
                     if (!(P1IN & BTN_START) || joy_x_end > 2600) break;
                 }
             }
@@ -408,7 +408,7 @@ void main(void) {
             Rect(0, 0, 128, 128, C_BLK);
             drawTextLine(1, 1, "NUMBER OF PLAYERS", C_YEL, C_BLK);
             Rect(0, 100, 128, 1, C_WHT);
-            drawTextLine(9, 1, "Back       Start", C_YEL, C_BLK);
+            drawTextLine(9, 1, "Menu          Ok", C_YEL, C_BLK);
             WaitForRelease();
             int multiSel = 0;
             while (state == 2) {
@@ -419,7 +419,7 @@ void main(void) {
                 int joy_x = ReadJoystickX();
                 if (!(P4IN & BTN_UP) || joy_y > 3072) { multiSel--; if (multiSel < 0) multiSel = 2; __delay_cycles(1500000); }
                 if (!(P3IN & BTN_DOWN) || joy_y < 1024) { multiSel++; if (multiSel > 2) multiSel = 0; __delay_cycles(1500000); }
-                if (!(P2IN & BTN_BACK) || joy_x < 1500) state = 0;
+                if (!(P2IN & BTN_MENU) || joy_x < 1500) state = 0;
                 if (!(P1IN & BTN_START) || joy_x > 2600) {
                     pCount = multiSel + 2;
                     int scores[5], ids[5], i, j;
@@ -445,11 +445,11 @@ void main(void) {
                     }
                     if (newRecord) drawTextLine(7, 1, "NEW RECORD!", C_GRN, C_BLK);
                     Rect(0, 100, 128, 1, C_WHT);
-                    drawTextLine(9, 1, "Back    Continue", C_YEL, C_BLK);
+                    drawTextLine(9, 1, "Menu       Retry", C_YEL, C_BLK);
                     WaitForRelease();
                     while (1) {
                         int joy_x_end = ReadJoystickX();
-                        if (!(P2IN & BTN_BACK) || joy_x_end < 1500) { state = 0; break; }
+                        if (!(P2IN & BTN_MENU) || joy_x_end < 1500) { state = 0; break; }
                         if (!(P1IN & BTN_START) || joy_x_end > 2600) break;
                     }
                 }

@@ -11,17 +11,17 @@
 
 ## Wie laeuft das Spiel ab?
 1. Hauptmenue: `SINGLE` oder `MULTI` waehlen.
-2. Highscore-Startscreen anzeigen.
+2. Highscore-Screen anzeigen (`Menu` links, `Ok` rechts).
 3. Namen eingeben.
 4. Spiel starten.
-5. Bei Kollision: Score anzeigen, ggf. Highscore aktualisieren.
+5. Bei Kollision: Score anzeigen, ggf. Highscore aktualisieren, danach `Menu` oder `Retry`.
 6. In Multi: Alle Spieler spielen, dann sortierte Ergebnisliste.
 
 ## Steuerung
 - Im Menue: Up/Down oder Joystick Y.
-- Bestaetigen: Start-Taste oder Joystick nach rechts.
-- Zurueck: Back-Taste oder Joystick nach links.
-- Im Spiel: Spurwechsel links/rechts mit Back/Start oder Joystick X.
+- Bestaetigen: `BTN_START` (je nach Screen als `Start`, `Ok` oder `Retry`) oder Joystick nach rechts.
+- Zurueck: `BTN_MENU` (`Menu`) oder Joystick nach links.
+- Im Spiel: Spurwechsel links/rechts mit `BTN_MENU`/`BTN_START` oder Joystick X.
 
 ## Was kann man im Code einstellen?
 Alle Anpassungen sind in `Data/app/main.c`.
@@ -66,7 +66,7 @@ Alle Anpassungen sind in `Data/app/main.c`.
 
 ## Wichtige Funktionen (kurz)
 - `main()`: Menue-Logik und kompletter Programmablauf.
-- `ShowHighscoreStartScreen()`: Startscreen mit Highscore-Anzeige.
+- `ShowHighscoreStartScreen()`: Highscore-Screen mit `Menu`/`Ok`.
 - `EnterName(...)`: Namenseingabe plus Duplikatpruefung.
 - `PlayGame(...)`: Gameplay, Kollision, Spawn, Difficulty.
 - `Input()`: Eingabe waehrend des Spiels.
