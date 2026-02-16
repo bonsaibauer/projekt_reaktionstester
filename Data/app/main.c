@@ -7,9 +7,9 @@
 #define C_BLK 0x000000
 #define C_WHT 0xFFFFFF
 #define C_GRN 0x00FF00
-#define C_RED 0xFF0000
+#define C_RED 0x0000FF
 #define C_YEL 0x00FFFF
-#define C_BLU 0x0000FF
+#define C_BLU 0xFF0000
 #define C_GRY 0x555555
 
 #define CAR_Y 100
@@ -151,7 +151,16 @@ int ShowHighscoreStartScreen() {
 }
 
 // NAMEN-EINGABE
-int EnterName(int playerNum, char* name) {
+int IsNameTaken(char* name, char usedNames[][3], int usedCount) {
+    int i;
+    if (flashHighscore.score > 0 && name[0] == flashHighscore.name[0] && name[1] == flashHighscore.name[1]) return 1;
+    if (!usedNames) return 0;
+    for (i = 0; i < usedCount; i++) if (name[0] == usedNames[i][0] && name[1] == usedNames[i][1]) return 1;
+    return 0;
+}
+
+int EnterName(int playerNum, char* name, char usedNames[][3], int usedCount) {
+retry:
     name[0] = 'A'; name[1] = 'A'; name[2] = '\0';
     int letterIdx = 0, charSel = 0;
     int up_old = 1, down_old = 1, start_old = 1, back_old = 1;
@@ -236,6 +245,11 @@ int EnterName(int playerNum, char* name) {
             }
             up_old = up; down_old = down; start_old = start; back_old = back;
         }
+    }
+    if (IsNameTaken(name, usedNames, usedCount)) {
+        drawTextLine(9, 1, "Name taken     ", C_RED, C_BLK);
+        __delay_cycles(12000000);
+        goto retry;
     }
     __delay_cycles(2000000);
     return 1;
@@ -370,7 +384,7 @@ void main(void) {
         }
         else if (state == 1) {
             if (!ShowHighscoreStartScreen()) { state = 0; continue; }
-            if (!EnterName(0, singlePlayerName)) { state = 0; continue; }
+            if (!EnterName(0, singlePlayerName, 0, 0)) { state = 0; continue; }
             int score = PlayGame(0, 0, singlePlayerName);
             Rect(0, 0, 128, 128, C_BLK);
             sprintf(b, "Score: %d", score); drawTextLine(5, 3, b, C_WHT, C_BLK);
@@ -402,7 +416,7 @@ void main(void) {
                     pCount = multiSel + 2;
                     int scores[5], ids[5], i, j;
                     char names[5][3];
-                    for (i = 1; i <= pCount; i++) if (!EnterName(i, names[i])) { state = 0; break; }
+                    for (i = 1; i <= pCount; i++) if (!EnterName(i, names[i], names + 1, i - 1)) { state = 0; break; }
                     if (state == 0) break;
                     for (i = 1; i <= pCount; i++) { scores[i] = PlayGame(i, 1, names[i]); ids[i] = i; }
                     for (i = 1; i < pCount; i++) for (j = 1; j <= pCount - i; j++)
