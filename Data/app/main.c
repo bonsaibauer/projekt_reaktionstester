@@ -133,10 +133,10 @@ void Wait(unsigned int start, unsigned int dur) {
 }
 
 // NAMEN-EINGABE
-void EnterName(int playerNum, char* name) {
+int EnterName(int playerNum, char* name) {
     name[0] = 'A'; name[1] = 'A'; name[2] = '\0';
     int letterIdx = 0, charSel = 0;
-    int up_old = 1, down_old = 1, start_old = 1;
+    int up_old = 1, down_old = 1, start_old = 1, back_old = 1;
 
     Rect(0, 0, 128, 128, C_BLK);
     char buf[20];
@@ -148,10 +148,11 @@ void EnterName(int playerNum, char* name) {
         drawTextLine(1, 2, "ENTER NAME", C_YEL, C_BLK);
     }
     Rect(0, 100, 128, 1, C_WHT);
-    drawTextLine(9, 12.5, "Start", C_YEL, C_BLK);
     drawTextLine(7, 13, "_ _", C_WHT, C_BLK);
 
-    while (letterIdx < 2) {
+    while (letterIdx < 3) {
+        drawTextLine(9, 1, letterIdx == 0 ? "Cancel     Ok   " : (letterIdx == 1 ? "Backspace  Ok   " : "Backspace  Start"), C_YEL, C_BLK);
+
         char prev = (charSel == 0) ? 'Z' : ('A' + charSel - 1);
         char curr = 'A' + charSel;
         char next = (charSel == 25) ? 'A' : ('A' + charSel + 1);
@@ -170,34 +171,56 @@ void EnterName(int playerNum, char* name) {
         int waiting = 1;
         while (waiting) {
             int joy_y = ReadJoystickY();
-            int up = (P4IN & BTN_UP), down = (P3IN & BTN_DOWN), start = (P1IN & BTN_START);
+            int joy_x = ReadJoystickX();
+            int up = (P4IN & BTN_UP), down = (P3IN & BTN_DOWN), start = (P1IN & BTN_START), back = (P2IN & BTN_BACK);
 
-            if ((!up && up_old) || joy_y > 3072) {
+            if (letterIdx < 2 && ((!up && up_old) || joy_y > 3072)) {
                 charSel = (charSel == 0) ? 25 : charSel - 1;
                 name[letterIdx] = 'A' + charSel;
                 __delay_cycles(150000);
                 waiting = 0;
             }
-            if ((!down && down_old) || joy_y < 1024) {
+            if (letterIdx < 2 && ((!down && down_old) || joy_y < 1024)) {
                 charSel = (charSel == 25) ? 0 : charSel + 1;
                 name[letterIdx] = 'A' + charSel;
                 __delay_cycles(150000);
                 waiting = 0;
             }
-            if (!start && start_old) {
-                letterIdx++; charSel = 0;
+            if (((!start && start_old) || joy_x > 2600)) {
+                if (letterIdx < 2) {
+                    letterIdx++;
+                    if (letterIdx < 2) charSel = 0;
+                    char display[10];
+                    if (letterIdx == 1) sprintf(display, "%c _", name[0]);
+                    else if (letterIdx == 2) sprintf(display, "%c %c", name[0], name[1]);
+                    drawTextLine(7, 13, "    ", C_BLK, C_BLK);
+                    drawTextLine(7, 13, display, C_WHT, C_BLK);
+                } else {
+                    letterIdx++;
+                }
+                __delay_cycles(200000);
+                waiting = 0;
+            }
+            if (((!back && back_old) || joy_x < 1500)) {
+                if (letterIdx == 0) {
+                    __delay_cycles(200000);
+                    return 0;
+                }
+                letterIdx--;
+                charSel = name[letterIdx] - 'A';
                 char display[10];
-                if (letterIdx == 1) sprintf(display, "%c _", name[0]);
-                else if (letterIdx == 2) sprintf(display, "%c %c", name[0], name[1]);
+                if (letterIdx == 0) sprintf(display, "_ _");
+                else sprintf(display, "%c _", name[0]);
                 drawTextLine(7, 13, "    ", C_BLK, C_BLK);
                 drawTextLine(7, 13, display, C_WHT, C_BLK);
                 __delay_cycles(200000);
                 waiting = 0;
             }
-            up_old = up; down_old = down; start_old = start;
+            up_old = up; down_old = down; start_old = start; back_old = back;
         }
     }
     __delay_cycles(2000000);
+    return 1;
 }
 
 // SPIELLOGIK
@@ -321,10 +344,10 @@ void main(void) {
                 drawTextLine(4, 3, mainSel == 0 ? ">  SINGLE" : "  SINGLE", mainSel == 0 ? C_GRN : C_GRY, C_BLK);
                 drawTextLine(6, 3, mainSel == 1 ? ">  MULTI " : "  MULTI ", mainSel == 1 ? C_GRN : C_GRY, C_BLK);
                 int joy_y = ReadJoystickY();
+                int joy_x = ReadJoystickX();
                 if (!(P4IN & BTN_UP) || joy_y > 3072) { mainSel = 0; __delay_cycles(150000); }
                 if (!(P3IN & BTN_DOWN) || joy_y < 1024) { mainSel = 1; __delay_cycles(150000); }
-                if (!(P1IN & BTN_START)) state = (mainSel == 0) ? 1 : 2;
-                if (!(P2IN & BTN_BACK)) { char resetName[3] = "  "; UpdateHighscore(resetName, 0); }
+                if (!(P1IN & BTN_START) || joy_x > 2600) state = (mainSel == 0) ? 1 : 2;
             }
         }
         else if (state == 1) {
@@ -338,9 +361,10 @@ void main(void) {
             drawTextLine(9, 1, "Back       Start", C_YEL, C_BLK);
             WaitForRelease();
             while (1) {
-                if (!(P2IN & BTN_BACK)) { state = 0; break; }
-                if (!(P1IN & BTN_START)) {
-                    EnterName(0, singlePlayerName);
+                int joy_x = ReadJoystickX();
+                if (!(P2IN & BTN_BACK) || joy_x < 1500) { state = 0; break; }
+                if (!(P1IN & BTN_START) || joy_x > 2600) {
+                    if (!EnterName(0, singlePlayerName)) { state = 0; break; }
                     int score = PlayGame(0, 0, singlePlayerName);
                     Rect(0, 0, 128, 128, C_BLK);
                     sprintf(b, "Score: %d", score); drawTextLine(5, 3, b, C_WHT, C_BLK);
@@ -354,38 +378,55 @@ void main(void) {
         }
         else if (state == 2) {
             drawTextLine(1, 1, "NUMBER OF PLAYERS", C_YEL, C_BLK);
+            if (flashHighscore.score > 0) {
+                drawTextLine(2, 1, "Highscore", C_GRN, C_BLK);
+                sprintf(b, "%s: %u", flashHighscore.name, flashHighscore.score);
+                drawTextLine(3, 1, b, C_GRN, C_BLK);
+            } else drawTextLine(3, 1, "No Record", C_GRY, C_BLK);
             Rect(0, 100, 128, 1, C_WHT);
             drawTextLine(9, 1, "Back       Start", C_YEL, C_BLK);
             int multiSel = 0;
             while (state == 2) {
-                drawTextLine(3, 3, multiSel == 0 ? ">  2 PLAYERS" : "  2 PLAYERS", multiSel == 0 ? C_GRN : C_GRY, C_BLK);
-                drawTextLine(5, 3, multiSel == 1 ? ">  3 PLAYERS" : "  3 PLAYERS", multiSel == 1 ? C_GRN : C_GRY, C_BLK);
-                drawTextLine(7, 3, multiSel == 2 ? ">  4 PLAYERS" : "  4 PLAYERS", multiSel == 2 ? C_GRN : C_GRY, C_BLK);
+                drawTextLine(4, 3, multiSel == 0 ? ">  2 PLAYERS" : "  2 PLAYERS", multiSel == 0 ? C_GRN : C_GRY, C_BLK);
+                drawTextLine(6, 3, multiSel == 1 ? ">  3 PLAYERS" : "  3 PLAYERS", multiSel == 1 ? C_GRN : C_GRY, C_BLK);
+                drawTextLine(8, 3, multiSel == 2 ? ">  4 PLAYERS" : "  4 PLAYERS", multiSel == 2 ? C_GRN : C_GRY, C_BLK);
                 int joy_y = ReadJoystickY();
+                int joy_x = ReadJoystickX();
                 if (!(P4IN & BTN_UP) || joy_y > 3072) { multiSel--; if (multiSel < 0) multiSel = 2; __delay_cycles(1500000); }
                 if (!(P3IN & BTN_DOWN) || joy_y < 1024) { multiSel++; if (multiSel > 2) multiSel = 0; __delay_cycles(1500000); }
-                if (!(P2IN & BTN_BACK)) state = 0;
-                if (!(P1IN & BTN_START)) {
+                if (!(P2IN & BTN_BACK) || joy_x < 1500) state = 0;
+                if (!(P1IN & BTN_START) || joy_x > 2600) {
                     pCount = multiSel + 2;
                     int scores[5], ids[5], i, j;
                     char names[5][3];
-                    for (i = 1; i <= pCount; i++) EnterName(i, names[i]);
+                    for (i = 1; i <= pCount; i++) if (!EnterName(i, names[i])) { state = 0; break; }
+                    if (state == 0) break;
                     for (i = 1; i <= pCount; i++) { scores[i] = PlayGame(i, 1, names[i]); ids[i] = i; }
                     for (i = 1; i < pCount; i++) for (j = 1; j <= pCount - i; j++)
                         if (scores[j] < scores[j + 1]) {
                             int t = scores[j]; scores[j] = scores[j + 1]; scores[j + 1] = t;
                             t = ids[j]; ids[j] = ids[j + 1]; ids[j + 1] = t;
                         }
+                    int newRecord = 0;
+                    if (scores[1] > flashHighscore.score) {
+                        UpdateHighscore(names[ids[1]], scores[1]);
+                        newRecord = 1;
+                    }
                     Rect(0, 0, 128, 128, C_BLK);
                     drawTextLine(1, 1, "RESULTS", C_YEL, C_BLK);
                     for (i = 1; i <= pCount; i++) {
                         sprintf(b, "%d. %s: %d", i, names[ids[i]], scores[i]);
                         drawTextLine(2 + i, 1, b, i == 1 ? C_GRN : C_WHT, C_BLK);
                     }
+                    if (newRecord) drawTextLine(7, 1, "NEW RECORD!", C_GRN, C_BLK);
                     Rect(0, 100, 128, 1, C_WHT);
-                    drawTextLine(9, 9, "Continue", C_YEL, C_BLK);
+                    drawTextLine(9, 1, "Back       Start", C_YEL, C_BLK);
                     WaitForRelease();
-                    while ((P1IN & BTN_START));
+                    while (1) {
+                        int joy_x_end = ReadJoystickX();
+                        if (!(P1IN & BTN_START) || joy_x_end > 2600) break;
+                        if (!(P2IN & BTN_BACK) || joy_x_end < 1500) break;
+                    }
                     state = 0;
                 }
             }
